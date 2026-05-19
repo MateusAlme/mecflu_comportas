@@ -116,10 +116,12 @@ export default function SimulatorPage() {
       ]
     : [];
 
-  const torqueMassaDisplay = resultado ? parseFloat(resultado.torque_massa_nm.toFixed(5)) : 0;
-  const torqueHidroDisplay = resultado ? parseFloat(resultado.torque_hidrostatico_nm.toFixed(5)) : 0;
-  const isEquilibrium = resultado ? torqueMassaDisplay === torqueHidroDisplay : false;
-  const canOpenGate = resultado ? torqueMassaDisplay >= torqueHidroDisplay : false;
+  const canOpenGate = resultado
+    ? resultado.torque_massa_nm > resultado.torque_hidrostatico_nm
+    : false;
+  const torqueSameDisplay = resultado
+    ? resultado.torque_massa_nm.toFixed(5) === resultado.torque_hidrostatico_nm.toFixed(5)
+    : false;
 
   const missingTorque = resultado
     ? Math.max(resultado.torque_hidrostatico_nm - resultado.torque_massa_nm, 0)
@@ -383,8 +385,8 @@ export default function SimulatorPage() {
                 </p>
                 <p className="text-xs text-slate-400 mt-1 leading-relaxed">
                   {canOpenGate
-                    ? isEquilibrium
-                      ? `Os torques se igualam em ${resultado.torque_massa_nm.toFixed(5)} N·m — a comporta está no ponto exato de abertura.`
+                    ? torqueSameDisplay
+                      ? `O torque das massas (${resultado.torque_massa_nm.toFixed(8)} N·m) é marginalmente superior ao torque hidrostático (${resultado.torque_hidrostatico_nm.toFixed(8)} N·m) — diferença de ${(resultado.torque_massa_nm - resultado.torque_hidrostatico_nm).toExponential(2)} N·m.`
                       : `O torque das massas (${resultado.torque_massa_nm.toFixed(5)} N·m) supera o torque hidrostático (${resultado.torque_hidrostatico_nm.toFixed(5)} N·m).`
                     : `O torque das massas (${resultado.torque_massa_nm.toFixed(5)} N·m) é menor que o torque hidrostático necessário (${resultado.torque_hidrostatico_nm.toFixed(5)} N·m). Faltam aproximadamente ${missingTorque.toFixed(5)} N·m; aumente a massa de areia, o braço de alavanca ou reduza a altura da água para permitir a abertura.`}
                 </p>
