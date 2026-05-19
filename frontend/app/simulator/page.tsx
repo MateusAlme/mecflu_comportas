@@ -4,7 +4,7 @@ import { api, ResultadoCalculo, DadosGraficos, EntradaCalculo } from "@/lib/api"
 import { MetricCard } from "@/components/ui/Card";
 import GateVisualization from "@/components/simulator/GateVisualization";
 import { PressureChart, ForceChart, ComparisonChart } from "@/components/charts/HydroCharts";
-import { AlertTriangle, CheckCircle2, MinusCircle, Play, Save, RotateCcw, ChevronDown, ChevronUp } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Play, Save, RotateCcw, ChevronDown, ChevronUp } from "lucide-react";
 import { clsx } from "clsx";
 
 const DEFAULT_INPUT: EntradaCalculo = {
@@ -119,7 +119,7 @@ export default function SimulatorPage() {
   const torqueMassaDisplay = resultado ? parseFloat(resultado.torque_massa_nm.toFixed(5)) : 0;
   const torqueHidroDisplay = resultado ? parseFloat(resultado.torque_hidrostatico_nm.toFixed(5)) : 0;
   const isEquilibrium = resultado ? torqueMassaDisplay === torqueHidroDisplay : false;
-  const canOpenGate = resultado ? torqueMassaDisplay > torqueHidroDisplay : false;
+  const canOpenGate = resultado ? torqueMassaDisplay >= torqueHidroDisplay : false;
 
   const missingTorque = resultado
     ? Math.max(resultado.torque_hidrostatico_nm - resultado.torque_massa_nm, 0)
@@ -369,31 +369,23 @@ export default function SimulatorPage() {
                 "rounded-xl border p-4 flex items-start gap-3",
                 canOpenGate
                   ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-300"
-                  : isEquilibrium
-                  ? "bg-blue-500/10 border-blue-500/20 text-blue-300"
                   : "bg-amber-500/10 border-amber-500/20 text-amber-300"
               )}
             >
               {canOpenGate ? (
                 <CheckCircle2 size={20} className="mt-0.5 shrink-0" />
-              ) : isEquilibrium ? (
-                <MinusCircle size={20} className="mt-0.5 shrink-0" />
               ) : (
                 <AlertTriangle size={20} className="mt-0.5 shrink-0" />
               )}
               <div>
                 <p className="text-sm font-semibold">
-                  {canOpenGate
-                    ? "A comporta abre com os valores informados"
-                    : isEquilibrium
-                    ? "Sistema em equilíbrio"
-                    : "A comporta permanece fechada"}
+                  {canOpenGate ? "A comporta abre com os valores informados" : "A comporta permanece fechada"}
                 </p>
                 <p className="text-xs text-slate-400 mt-1 leading-relaxed">
                   {canOpenGate
-                    ? `O torque das massas (${resultado.torque_massa_nm.toFixed(5)} N·m) supera o torque hidrostático (${resultado.torque_hidrostatico_nm.toFixed(5)} N·m).`
-                    : isEquilibrium
-                    ? `Os torques são iguais (${resultado.torque_massa_nm.toFixed(5)} N·m). O torque resultante é zero — a comporta está no ponto de equilíbrio, mas não abre. Aumente levemente a massa de areia para provocar a abertura.`
+                    ? isEquilibrium
+                      ? `Os torques se igualam em ${resultado.torque_massa_nm.toFixed(5)} N·m — a comporta está no ponto exato de abertura.`
+                      : `O torque das massas (${resultado.torque_massa_nm.toFixed(5)} N·m) supera o torque hidrostático (${resultado.torque_hidrostatico_nm.toFixed(5)} N·m).`
                     : `O torque das massas (${resultado.torque_massa_nm.toFixed(5)} N·m) é menor que o torque hidrostático necessário (${resultado.torque_hidrostatico_nm.toFixed(5)} N·m). Faltam aproximadamente ${missingTorque.toFixed(5)} N·m; aumente a massa de areia, o braço de alavanca ou reduza a altura da água para permitir a abertura.`}
                 </p>
               </div>
