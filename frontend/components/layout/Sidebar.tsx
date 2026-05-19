@@ -1,14 +1,12 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, FlaskConical, FileText, BookOpen } from "lucide-react";
+import { FlaskConical, FileText } from "lucide-react";
 import { clsx } from "clsx";
 
 const navItems = [
-  { href: "/", icon: Home, label: "Início" },
   { href: "/simulator", icon: FlaskConical, label: "Simulador" },
   { href: "/reports", icon: FileText, label: "Relatórios" },
-  { href: "/theory", icon: BookOpen, label: "Área Teórica" },
 ];
 
 export default function Sidebar() {

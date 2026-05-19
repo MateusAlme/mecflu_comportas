@@ -4,7 +4,7 @@ import { api, ResultadoCalculo, DadosGraficos, EntradaCalculo } from "@/lib/api"
 import { MetricCard } from "@/components/ui/Card";
 import GateVisualization from "@/components/simulator/GateVisualization";
 import { PressureChart, ForceChart, ComparisonChart } from "@/components/charts/HydroCharts";
-import { Play, Save, RotateCcw, ChevronDown, ChevronUp } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Play, Save, RotateCcw, ChevronDown, ChevronUp } from "lucide-react";
 import { clsx } from "clsx";
 
 const DEFAULT_INPUT: EntradaCalculo = {
@@ -115,6 +115,14 @@ export default function SimulatorPage() {
         },
       ]
     : [];
+
+  const canOpenGate = resultado
+    ? resultado.torque_massa_nm >= resultado.torque_hidrostatico_nm
+    : false;
+
+  const missingTorque = resultado
+    ? Math.max(resultado.torque_hidrostatico_nm - resultado.torque_massa_nm, 0)
+    : 0;
 
   return (
     <div className="p-6">
@@ -305,28 +313,65 @@ export default function SimulatorPage() {
               forcaN={resultado?.forca_hidrostatica_n}
               excentricidadeMm={resultado ? resultado.excentricidade_m * 1000 : 0}
               massaTotalKg={resultado?.massa_total_kg}
+              canOpen={canOpenGate}
             />
           </div>
+
+          {resultado && (
+            <div
+              className={clsx(
+                "rounded-xl border p-4 flex items-start gap-3",
+                canOpenGate
+                  ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-300"
+                  : "bg-amber-500/10 border-amber-500/20 text-amber-300"
+              )}
+            >
+              {canOpenGate ? (
+                <CheckCircle2 size={20} className="mt-0.5 shrink-0" />
+              ) : (
+                <AlertTriangle size={20} className="mt-0.5 shrink-0" />
+              )}
+              <div>
+                <p className="text-sm font-semibold">
+                  {canOpenGate ? "A comporta abre com os valores informados" : "A comporta permanece fechada"}
+                </p>
+                <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                  {canOpenGate
+                    ? `O torque das massas (${resultado.torque_massa_nm.toFixed(5)} N·m) é suficiente para superar o torque hidrostático (${resultado.torque_hidrostatico_nm.toFixed(5)} N·m).`
+                    : `O torque das massas (${resultado.torque_massa_nm.toFixed(5)} N·m) é menor que o torque hidrostático necessário (${resultado.torque_hidrostatico_nm.toFixed(5)} N·m). Faltam aproximadamente ${missingTorque.toFixed(5)} N·m; aumente a massa de areia, o braço de alavanca ou reduza a altura da água para permitir a abertura.`}
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Gráficos */}
           {graficos && (
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
               <div className="bg-[#111827] border border-slate-800 rounded-xl p-4">
-                <h3 className="text-sm font-semibold text-slate-400 mb-3 uppercase tracking-wider">
+                <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
                   Pressão × Altura
                 </h3>
+                <p className="text-xs text-slate-500 mt-1 mb-3 leading-relaxed">
+                  Mostra como a pressão no centro da comporta cresce conforme o nível de água aumenta.
+                </p>
                 <PressureChart data={graficos.pressao_vs_altura} />
               </div>
               <div className="bg-[#111827] border border-slate-800 rounded-xl p-4">
-                <h3 className="text-sm font-semibold text-slate-400 mb-3 uppercase tracking-wider">
+                <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
                   Força × Altura
                 </h3>
+                <p className="text-xs text-slate-500 mt-1 mb-3 leading-relaxed">
+                  Indica a força hidrostática resultante aplicada na comporta para cada altura de água.
+                </p>
                 <ForceChart data={graficos.forca_vs_altura} />
               </div>
               <div className="bg-[#111827] border border-slate-800 rounded-xl p-4">
-                <h3 className="text-sm font-semibold text-slate-400 mb-3 uppercase tracking-wider">
+                <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
                   Teórico × Experimental
                 </h3>
+                <p className="text-xs text-slate-500 mt-1 mb-3 leading-relaxed">
+                  Compara o torque/massa calculados pela teoria com os valores obtidos pelo conjunto de massas.
+                </p>
                 <ComparisonChart data={comparisonData} />
               </div>
             </div>

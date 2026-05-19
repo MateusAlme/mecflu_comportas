@@ -110,6 +110,10 @@ body {
   animation-delay: -280ms;
 }
 
+.practice-pulley-active {
+  animation: pulleySpin 850ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
 @keyframes gateFlow {
   from { stroke-dashoffset: 28; }
   to { stroke-dashoffset: 0; }
@@ -118,4 +122,9 @@ body {
 @keyframes gateSurfaceDrift {
   0%, 100% { transform: translateX(-1px); }
   50% { transform: translateX(2px); }
+}
+
+@keyframes pulleySpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(220deg); }
 }
