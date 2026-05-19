@@ -75,7 +75,7 @@ export default function GateVisualization({
   }, [hasResult, forcaN, massaTotalKg]);
 
   return (
-    <div className="bg-[#0d1224] rounded-xl border border-slate-800 p-4">
+    <div className="bg-[#0d1224] rounded-xl border border-slate-800 p-4 min-w-0">
       <div className="flex items-center justify-between gap-3 mb-3">
         <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
           Vista Lateral — Aparato da Prática
@@ -87,7 +87,7 @@ export default function GateVisualization({
         )}
       </div>
 
-      <svg viewBox={`0 0 ${W} ${H_SVG}`} className="w-full" style={{ height: 340 }}>
+      <svg viewBox={`0 0 ${W} ${H_SVG}`} className="w-full h-auto max-h-[340px]">
         <defs>
           <linearGradient id="practiceWater" x1="0" x2="0" y1="0" y2="1">
             <stop offset="0%" stopColor="rgba(34,211,238,0.28)" />

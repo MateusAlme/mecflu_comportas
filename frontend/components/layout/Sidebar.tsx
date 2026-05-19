@@ -13,8 +13,8 @@ export default function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="fixed left-0 top-16 bottom-0 w-64 bg-[#0d1224] border-r border-cyan-500/10 flex flex-col py-6 px-3">
-      <nav className="flex flex-col gap-1">
+    <aside className="fixed left-0 right-0 bottom-0 z-40 h-16 bg-[#0d1224] border-t border-cyan-500/10 px-3 py-2 md:top-16 md:right-auto md:bottom-0 md:h-auto md:w-64 md:border-t-0 md:border-r md:py-6 md:flex md:flex-col">
+      <nav className="grid grid-cols-2 gap-2 md:flex md:flex-col md:gap-1">
         {navItems.map(({ href, icon: Icon, label }) => {
           const active = pathname === href;
           return (
@@ -22,7 +22,7 @@ export default function Sidebar() {
               key={href}
               href={href}
               className={clsx(
-                "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200",
+                "flex items-center justify-center md:justify-start gap-2 md:gap-3 px-3 md:px-4 py-2.5 md:py-3 rounded-lg text-sm font-medium transition-all duration-200",
                 active
                   ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20"
                   : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
@@ -38,7 +38,7 @@ export default function Sidebar() {
         })}
       </nav>
 
-      <div className="mt-auto px-4">
+      <div className="hidden md:block mt-auto px-4">
         <div className="p-3 rounded-lg bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border border-cyan-500/10">
           <p className="text-xs text-cyan-400 font-medium mb-1">Fluido padrão</p>
           <p className="text-xs text-slate-400">Água — 1000 kg/m³</p>

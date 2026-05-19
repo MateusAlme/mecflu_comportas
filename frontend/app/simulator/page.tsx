@@ -125,7 +125,7 @@ export default function SimulatorPage() {
     : 0;
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-white">Simulador Hidrostático</h1>
         <p className="text-slate-400 text-sm mt-1">
@@ -133,9 +133,9 @@ export default function SimulatorPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[340px_1fr] gap-6">
+      <div className="grid grid-cols-1 2xl:grid-cols-[340px_1fr] gap-6">
         {/* Painel de entrada */}
-        <div className="space-y-4">
+        <div className="space-y-4 min-w-0">
           <div className="bg-[#111827] border border-slate-800 rounded-xl p-5">
             <h2 className="text-sm font-semibold text-slate-300 mb-4 uppercase tracking-wider">
               Geometria da Comporta
@@ -223,22 +223,27 @@ export default function SimulatorPage() {
         </div>
 
         {/* Área de resultados */}
-        <div className="space-y-6">
+        <div className="space-y-6 min-w-0">
           {/* Visualização */}
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-6">
-            <div>
+          <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(320px,420px)] gap-6 items-start min-w-0">
+            <div className="min-w-0">
               {resultado ? (
                 <div className="space-y-4">
                   <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">
                     Resultados
                   </h2>
-                  <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
                     <MetricCard
                       label="Área"
                       value={resultado.area_m2}
                       unit="m²"
                       color="cyan"
                       description="πr²"
+                      details={[
+                        `Raio: r = D/2 = ${(input.diametro_mm / 2).toFixed(2)} mm = ${resultado.raio_m.toFixed(5)} m.`,
+                        `Área: A = π · r² = π · (${resultado.raio_m.toFixed(5)})².`,
+                        `Resultado: A = ${resultado.area_m2.toFixed(6)} m².`,
+                      ]}
                     />
                     <MetricCard
                       label="Pressão (centróide)"
@@ -246,6 +251,11 @@ export default function SimulatorPage() {
                       unit="Pa"
                       color="blue"
                       description="ρgh"
+                      details={[
+                        `Profundidade do centróide: h = H - H' = ${input.altura_h_cm} - ${input.altura_h_linha_cm} = ${(resultado.profundidade_centroide_m * 100).toFixed(2)} cm.`,
+                        `Pressão: P = ρ · g · h = ${input.densidade_fluido} · ${input.gravidade} · ${resultado.profundidade_centroide_m.toFixed(4)}.`,
+                        `Resultado: P = ${resultado.pressao_centroide_pa.toFixed(2)} Pa.`,
+                      ]}
                     />
                     <MetricCard
                       label="Força Hidrostática"
@@ -253,6 +263,11 @@ export default function SimulatorPage() {
                       unit="N"
                       color="cyan"
                       description="F = P·A"
+                      details={[
+                        `Força: F = P · A.`,
+                        `Substituindo: F = ${resultado.pressao_centroide_pa.toFixed(2)} · ${resultado.area_m2.toFixed(6)}.`,
+                        `Resultado: F = ${resultado.forca_hidrostatica_n.toFixed(4)} N.`,
+                      ]}
                     />
                     <MetricCard
                       label="Excentricidade"
@@ -260,6 +275,11 @@ export default function SimulatorPage() {
                       unit="mm"
                       color="amber"
                       description="e = ycp − ȳ"
+                      details={[
+                        `Centro de pressão: ycp = ${resultado.profundidade_centro_pressao_m.toFixed(5)} m.`,
+                        `Centróide: ȳ = ${resultado.profundidade_centroide_m.toFixed(5)} m.`,
+                        `Excentricidade: e = ycp - ȳ = ${(resultado.excentricidade_m * 1000).toFixed(3)} mm.`,
+                      ]}
                     />
                     <MetricCard
                       label="Torque Hidrostático"
@@ -267,6 +287,11 @@ export default function SimulatorPage() {
                       unit="N·m"
                       color="blue"
                       description="Teórico"
+                      details={[
+                        `Torque teórico da água: M = F · e.`,
+                        `Substituindo: M = ${resultado.forca_hidrostatica_n.toFixed(4)} · ${resultado.excentricidade_m.toFixed(6)}.`,
+                        `Resultado: M = ${resultado.torque_hidrostatico_nm.toFixed(5)} N·m.`,
+                      ]}
                     />
                     <MetricCard
                       label="Torque das Massas"
@@ -274,6 +299,11 @@ export default function SimulatorPage() {
                       unit="N·m"
                       color="green"
                       description="Experimental"
+                      details={[
+                        `Massa total: m = gancho + recipiente + areia = ${(resultado.massa_total_kg * 1000).toFixed(2)} g.`,
+                        `Braço: L = ${input.braco_alavanca_cm} cm = ${(input.braco_alavanca_cm / 100).toFixed(5)} m.`,
+                        `Torque: M = m · g · L = ${resultado.massa_total_kg.toFixed(5)} · ${input.gravidade} · ${(input.braco_alavanca_cm / 100).toFixed(5)}.`,
+                      ]}
                     />
                     <MetricCard
                       label="Massa Teórica"
@@ -281,6 +311,11 @@ export default function SimulatorPage() {
                       unit="g"
                       color="cyan"
                       description="Para equilíbrio"
+                      details={[
+                        `Condição: torque das massas = torque hidrostático.`,
+                        `m = M_água / (g · L).`,
+                        `m = ${resultado.torque_hidrostatico_nm.toFixed(5)} / (${input.gravidade} · ${(input.braco_alavanca_cm / 100).toFixed(5)}) = ${(resultado.massa_teorica_kg * 1000).toFixed(2)} g.`,
+                      ]}
                     />
                     <MetricCard
                       label="Massa Experimental"
@@ -288,6 +323,11 @@ export default function SimulatorPage() {
                       unit="g"
                       color="amber"
                       description="Gancho + rec + areia"
+                      details={[
+                        `m_total = m_gancho + m_recipiente + m_areia.`,
+                        `m_total = ${input.massa_gancho_g} + ${input.massa_recipiente_g} + ${input.massa_areia_g} g.`,
+                        `Resultado: m_total = ${(resultado.massa_total_kg * 1000).toFixed(2)} g.`,
+                      ]}
                     />
                     <MetricCard
                       label="Erro Percentual"
@@ -295,6 +335,11 @@ export default function SimulatorPage() {
                       unit="%"
                       color={resultado.erro_percentual < 5 ? "green" : resultado.erro_percentual < 15 ? "amber" : "red"}
                       description="Teórico vs Experimental"
+                      details={[
+                        `Erro = |M_teórico - M_experimental| / M_experimental · 100.`,
+                        `Erro = |${resultado.torque_hidrostatico_nm.toFixed(5)} - ${resultado.torque_massa_nm.toFixed(5)}| / ${resultado.torque_massa_nm.toFixed(5)} · 100.`,
+                        `Resultado: ${resultado.erro_percentual.toFixed(2)}%.`,
+                      ]}
                     />
                   </div>
                 </div>
@@ -347,7 +392,7 @@ export default function SimulatorPage() {
           {/* Gráficos */}
           {graficos && (
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-              <div className="bg-[#111827] border border-slate-800 rounded-xl p-4">
+              <div className="bg-[#111827] border border-slate-800 rounded-xl p-4 min-w-0">
                 <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
                   Pressão × Altura
                 </h3>
@@ -356,7 +401,7 @@ export default function SimulatorPage() {
                 </p>
                 <PressureChart data={graficos.pressao_vs_altura} />
               </div>
-              <div className="bg-[#111827] border border-slate-800 rounded-xl p-4">
+              <div className="bg-[#111827] border border-slate-800 rounded-xl p-4 min-w-0">
                 <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
                   Força × Altura
                 </h3>
@@ -365,7 +410,7 @@ export default function SimulatorPage() {
                 </p>
                 <ForceChart data={graficos.forca_vs_altura} />
               </div>
-              <div className="bg-[#111827] border border-slate-800 rounded-xl p-4">
+              <div className="bg-[#111827] border border-slate-800 rounded-xl p-4 min-w-0">
                 <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
                   Teórico × Experimental
                 </h3>
