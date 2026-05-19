@@ -116,11 +116,10 @@ export default function SimulatorPage() {
       ]
     : [];
 
-  const torqueDiff = resultado
-    ? resultado.torque_massa_nm - resultado.torque_hidrostatico_nm
-    : 0;
-  const isEquilibrium = resultado ? Math.abs(torqueDiff) < 1e-6 : false;
-  const canOpenGate = resultado ? torqueDiff > 1e-6 : false;
+  const torqueMassaDisplay = resultado ? parseFloat(resultado.torque_massa_nm.toFixed(5)) : 0;
+  const torqueHidroDisplay = resultado ? parseFloat(resultado.torque_hidrostatico_nm.toFixed(5)) : 0;
+  const isEquilibrium = resultado ? torqueMassaDisplay === torqueHidroDisplay : false;
+  const canOpenGate = resultado ? torqueMassaDisplay > torqueHidroDisplay : false;
 
   const missingTorque = resultado
     ? Math.max(resultado.torque_hidrostatico_nm - resultado.torque_massa_nm, 0)
