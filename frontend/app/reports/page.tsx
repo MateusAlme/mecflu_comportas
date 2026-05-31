@@ -80,7 +80,6 @@ export default function ReportsPage() {
         <div className="space-y-4">
           {experimentos.map((exp) => (
             <div key={exp.id} className="bg-[#111827] border border-slate-800 rounded-xl overflow-hidden">
-              {/* Header do experimento */}
               <div
                 className="flex items-center justify-between p-5 cursor-pointer hover:bg-slate-800/30 transition-colors"
                 onClick={() => setExpandido(expandido === exp.id ? null : exp.id)}
@@ -101,13 +100,17 @@ export default function ReportsPage() {
                       <span className="flex items-center gap-1 text-xs text-slate-400">
                         <Droplets size={10} /> H={exp.altura_h_cm} cm
                       </span>
+                      <span className="text-xs text-slate-400">θ={exp.angulo_graus}°</span>
                     </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-xs bg-slate-800 px-2 py-1 rounded text-slate-400">
-                    {exp.medicoes.length} medição(ões)
-                  </span>
+                  <div className="text-right">
+                    <div className="text-xs text-slate-500">Erro</div>
+                    <div className={clsx("text-sm font-mono font-bold", erroColor(exp.erro_percentual))}>
+                      {exp.erro_percentual.toFixed(2)}%
+                    </div>
+                  </div>
                   <button
                     onClick={(e) => { e.stopPropagation(); handleDeletar(exp.id); }}
                     disabled={deletando === exp.id}
@@ -118,54 +121,75 @@ export default function ReportsPage() {
                 </div>
               </div>
 
-              {/* Medições expandidas */}
-              {expandido === exp.id && exp.medicoes.length > 0 && (
-                <div className="border-t border-slate-800 p-5">
-                  <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
-                    Medições
-                  </h3>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="text-xs text-slate-500 border-b border-slate-800">
-                          <th className="text-left py-2 pr-4">Nº</th>
-                          <th className="text-right py-2 pr-4">Areia (g)</th>
-                          <th className="text-right py-2 pr-4">F (N)</th>
-                          <th className="text-right py-2 pr-4">τ Teórico (N·m)</th>
-                          <th className="text-right py-2 pr-4">τ Experimental (N·m)</th>
-                          <th className="text-right py-2">Erro (%)</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {exp.medicoes.map((m) => (
-                          <tr key={m.id} className="border-b border-slate-800/50 hover:bg-slate-800/20">
-                            <td className="py-2 pr-4 text-slate-400">{m.numero}</td>
-                            <td className="py-2 pr-4 text-right font-mono text-slate-200">{m.massa_areia_g.toFixed(2)}</td>
-                            <td className="py-2 pr-4 text-right font-mono text-cyan-400">{m.forca_hidrostatica_n.toFixed(4)}</td>
-                            <td className="py-2 pr-4 text-right font-mono text-blue-400">{m.torque_teorico_nm.toFixed(5)}</td>
-                            <td className="py-2 pr-4 text-right font-mono text-amber-400">{m.torque_experimental_nm.toFixed(5)}</td>
-                            <td className={clsx("py-2 text-right font-mono font-bold", erroColor(m.erro_percentual))}>
-                              {m.erro_percentual.toFixed(2)}%
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+              {expandido === exp.id && (
+                <div className="border-t border-slate-800 p-5 space-y-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="bg-slate-800/40 rounded-lg px-3 py-2">
+                      <p className="text-xs text-slate-500">Tração Teórica</p>
+                      <p className="text-sm font-mono text-blue-400">{exp.tracao_teorica_n.toFixed(4)} N</p>
+                    </div>
+                    <div className="bg-slate-800/40 rounded-lg px-3 py-2">
+                      <p className="text-xs text-slate-500">Tração Experimental</p>
+                      <p className="text-sm font-mono text-amber-400">{exp.tracao_experimental_n.toFixed(4)} N</p>
+                    </div>
+                    <div className="bg-slate-800/40 rounded-lg px-3 py-2">
+                      <p className="text-xs text-slate-500">Média de Areia</p>
+                      <p className="text-sm font-mono text-slate-300">{exp.massa_areia_media_g.toFixed(2)} g</p>
+                    </div>
+                    <div className="bg-slate-800/40 rounded-lg px-3 py-2">
+                      <p className="text-xs text-slate-500">Erro</p>
+                      <p className={clsx("text-sm font-mono font-bold", erroColor(exp.erro_percentual))}>
+                        {exp.erro_percentual.toFixed(2)}%
+                      </p>
+                    </div>
                   </div>
 
-                  {/* Parâmetros do experimento */}
-                  <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {[
-                      { label: "Gancho", val: `${exp.massa_gancho_g} g` },
-                      { label: "Recipiente", val: `${exp.massa_recipiente_g} g` },
-                      { label: "Braço de alavanca", val: `${exp.braco_alavanca_cm} cm` },
-                      { label: "Densidade", val: `${exp.densidade_fluido} kg/m³` },
-                    ].map((p) => (
-                      <div key={p.label} className="bg-slate-800/40 rounded-lg px-3 py-2">
-                        <p className="text-xs text-slate-500">{p.label}</p>
-                        <p className="text-sm font-mono text-slate-300">{p.val}</p>
+                  {exp.medicoes.length > 0 && (
+                    <div>
+                      <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
+                        Medições de Areia
+                      </h3>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="text-xs text-slate-500 border-b border-slate-800">
+                              <th className="text-left py-2 pr-4">Nº</th>
+                              <th className="text-right py-2">Massa de areia (g)</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {exp.medicoes.map((m) => (
+                              <tr key={m.id} className="border-b border-slate-800/50 hover:bg-slate-800/20">
+                                <td className="py-2 pr-4 text-slate-400">{m.numero}</td>
+                                <td className="py-2 text-right font-mono text-slate-200">{m.massa_areia_g.toFixed(2)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
-                    ))}
+                    </div>
+                  )}
+
+                  <div>
+                    <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
+                      Parâmetros do experimento
+                    </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {[
+                        { label: "Comporta", val: `${exp.massa_comporta_g} g` },
+                        { label: "Gancho", val: `${exp.massa_gancho_g} g` },
+                        { label: "Recipiente", val: `${exp.massa_recipiente_g} g` },
+                        { label: "H'", val: `${exp.altura_h_linha_cm} cm` },
+                        { label: "Ângulo", val: `${exp.angulo_graus}°` },
+                        { label: "Densidade", val: `${exp.densidade_fluido} kg/m³` },
+                        { label: "Gravidade", val: `${exp.gravidade} m/s²` },
+                      ].map((p) => (
+                        <div key={p.label} className="bg-slate-800/40 rounded-lg px-3 py-2">
+                          <p className="text-xs text-slate-500">{p.label}</p>
+                          <p className="text-sm font-mono text-slate-300">{p.val}</p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}

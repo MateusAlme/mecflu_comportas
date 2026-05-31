@@ -22,9 +22,13 @@ class ExperimentoDB(Base):
     massa_recipiente_g = Column(Float)
     altura_h_cm = Column(Float)
     altura_h_linha_cm = Column(Float)
+    angulo_graus = Column(Float, default=60.0)
     densidade_fluido = Column(Float, default=1000.0)
-    gravidade = Column(Float, default=9.81)
-    braco_alavanca_cm = Column(Float, default=0.583)
+    gravidade = Column(Float, default=10.0)
+    tracao_teorica_n = Column(Float, default=0.0)
+    tracao_experimental_n = Column(Float, default=0.0)
+    erro_percentual = Column(Float, default=0.0)
+    massa_areia_media_g = Column(Float, default=0.0)
 
     medicoes = relationship("MedicaoDB", back_populates="experimento", cascade="all, delete-orphan")
 
@@ -36,10 +40,6 @@ class MedicaoDB(Base):
     experimento_id = Column(Integer, ForeignKey("experimentos.id"))
     numero = Column(Integer)
     massa_areia_g = Column(Float)
-    forca_hidrostatica_n = Column(Float)
-    torque_teorico_nm = Column(Float)
-    torque_experimental_nm = Column(Float)
-    erro_percentual = Column(Float)
 
     experimento = relationship("ExperimentoDB", back_populates="medicoes")
 

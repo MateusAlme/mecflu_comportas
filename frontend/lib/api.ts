@@ -8,32 +8,42 @@ export interface EntradaCalculo {
   massa_recipiente_g: number;
   altura_h_cm: number;
   altura_h_linha_cm: number;
+  angulo_graus: number;
   densidade_fluido: number;
   gravidade: number;
-  braco_alavanca_cm: number;
-  massa_areia_g: number;
+  medicoes_areia_g: number[];
 }
 
 export interface ResultadoCalculo {
   raio_m: number;
   area_m2: number;
-  profundidade_centroide_m: number;
+  angulo_graus: number;
+  h_barra_m: number;
+  y_barra_m: number;
   pressao_centroide_pa: number;
   forca_hidrostatica_n: number;
   momento_inercia_m4: number;
-  profundidade_centro_pressao_m: number;
+  distancia_centro_pressao_m: number;
   excentricidade_m: number;
-  torque_hidrostatico_nm: number;
+  componente_peso_n: number;
+  tracao_teorica_n: number;
+  massa_areia_media_g: number;
   massa_total_kg: number;
-  torque_massa_nm: number;
-  erro_percentual: number;
+  tracao_experimental_n: number;
   massa_teorica_kg: number;
+  erro_percentual: number;
 }
 
 export interface DadosGraficos {
   pressao_vs_altura: { altura_cm: number; pressao_pa: number }[];
   forca_vs_altura: { altura_cm: number; forca_n: number }[];
   excentricidade_vs_altura: { altura_cm: number; excentricidade_mm: number }[];
+}
+
+export interface Medicao {
+  id: number;
+  numero: number;
+  massa_areia_g: number;
 }
 
 export interface Experimento {
@@ -46,20 +56,14 @@ export interface Experimento {
   massa_recipiente_g: number;
   altura_h_cm: number;
   altura_h_linha_cm: number;
+  angulo_graus: number;
   densidade_fluido: number;
   gravidade: number;
-  braco_alavanca_cm: number;
-  medicoes: Medicao[];
-}
-
-export interface Medicao {
-  id: number;
-  numero: number;
-  massa_areia_g: number;
-  forca_hidrostatica_n: number;
-  torque_teorico_nm: number;
-  torque_experimental_nm: number;
+  tracao_teorica_n: number;
+  tracao_experimental_n: number;
   erro_percentual: number;
+  massa_areia_media_g: number;
+  medicoes: Medicao[];
 }
 
 async function fetcher<T>(path: string, options?: RequestInit): Promise<T> {
@@ -86,7 +90,7 @@ export const api = {
 
   listarExperimentos: () => fetcher<Experimento[]>("/experimentos/"),
 
-  criarExperimento: (dados: Omit<EntradaCalculo, "massa_areia_g">) =>
+  criarExperimento: (dados: EntradaCalculo) =>
     fetcher<Experimento>("/experimentos/", {
       method: "POST",
       body: JSON.stringify(dados),
@@ -96,10 +100,4 @@ export const api = {
 
   deletarExperimento: (id: number) =>
     fetch(`${API_BASE}/experimentos/${id}`, { method: "DELETE" }),
-
-  adicionarMedicao: (experimentoId: number, numero: number, massa_areia_g: number) =>
-    fetcher<Medicao>(`/experimentos/${experimentoId}/medicoes`, {
-      method: "POST",
-      body: JSON.stringify({ numero, massa_areia_g }),
-    }),
 };

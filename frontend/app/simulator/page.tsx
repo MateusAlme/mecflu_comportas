@@ -4,29 +4,31 @@ import { api, ResultadoCalculo, DadosGraficos, EntradaCalculo } from "@/lib/api"
 import { MetricCard } from "@/components/ui/Card";
 import GateVisualization from "@/components/simulator/GateVisualization";
 import { PressureChart, ForceChart, ComparisonChart } from "@/components/charts/HydroCharts";
-import { AlertTriangle, CheckCircle2, Play, Save, RotateCcw, ChevronDown, ChevronUp } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Play, Save, RotateCcw, ChevronDown, ChevronUp, Plus, X } from "lucide-react";
 import { clsx } from "clsx";
 
 const DEFAULT_INPUT: EntradaCalculo = {
   nome: "Experimento",
-  diametro_mm: 75.1,
+  diametro_mm: 75.5,
   massa_comporta_g: 27.23,
-  massa_gancho_g: 5.36,
+  massa_gancho_g: 5.38,
   massa_recipiente_g: 15.74,
   altura_h_cm: 25,
   altura_h_linha_cm: 13,
+  angulo_graus: 60,
   densidade_fluido: 1000,
-  gravidade: 9.81,
-  braco_alavanca_cm: 0.583,
-  massa_areia_g: 246.79,
+  gravidade: 10,
+  medicoes_areia_g: [246.79, 246.38, 249.91, 249.74, 236.08],
 };
+
+type SimpleField = Exclude<keyof EntradaCalculo, "medicoes_areia_g" | "nome">;
 
 interface InputFieldProps {
   label: string;
   unit: string;
-  field: keyof EntradaCalculo;
+  field: SimpleField;
   value: number | string;
-  onChange: (field: keyof EntradaCalculo, val: number | string) => void;
+  onChange: (field: SimpleField, val: number) => void;
   step?: number;
   min?: number;
 }
@@ -61,9 +63,32 @@ export default function SimulatorPage() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
 
-  const handleChange = useCallback((field: keyof EntradaCalculo, val: number | string) => {
+  const handleChange = useCallback((field: SimpleField, val: number) => {
     setInput((prev) => ({ ...prev, [field]: val }));
   }, []);
+
+  const handleMedicaoChange = (index: number, val: number) => {
+    setInput((prev) => {
+      const novas = [...prev.medicoes_areia_g];
+      novas[index] = val;
+      return { ...prev, medicoes_areia_g: novas };
+    });
+  };
+
+  const addMedicao = () => {
+    setInput((prev) => ({
+      ...prev,
+      medicoes_areia_g: [...prev.medicoes_areia_g, 0],
+    }));
+  };
+
+  const removeMedicao = (index: number) => {
+    setInput((prev) => {
+      if (prev.medicoes_areia_g.length <= 1) return prev;
+      const novas = prev.medicoes_areia_g.filter((_, i) => i !== index);
+      return { ...prev, medicoes_areia_g: novas };
+    });
+  };
 
   const handleSimular = async () => {
     setLoading(true);
@@ -85,8 +110,7 @@ export default function SimulatorPage() {
   const handleSalvar = async () => {
     setSaveStatus("saving");
     try {
-      const exp = await api.criarExperimento(input);
-      await api.adicionarMedicao(exp.id, 1, input.massa_areia_g);
+      await api.criarExperimento(input);
       setSaveStatus("saved");
       setTimeout(() => setSaveStatus("idle"), 3000);
     } catch {
@@ -104,9 +128,9 @@ export default function SimulatorPage() {
   const comparisonData = resultado
     ? [
         {
-          label: "Torque (N·m)",
-          teorico: parseFloat(resultado.torque_hidrostatico_nm.toFixed(5)),
-          experimental: parseFloat(resultado.torque_massa_nm.toFixed(5)),
+          label: "Tração (N)",
+          teorico: parseFloat(resultado.tracao_teorica_n.toFixed(4)),
+          experimental: parseFloat(resultado.tracao_experimental_n.toFixed(4)),
         },
         {
           label: "Massa (kg)",
@@ -117,22 +141,25 @@ export default function SimulatorPage() {
     : [];
 
   const canOpenGate = resultado
-    ? resultado.torque_massa_nm > resultado.torque_hidrostatico_nm
+    ? resultado.tracao_experimental_n >= resultado.tracao_teorica_n
     : false;
-  const torqueSameDisplay = resultado
-    ? resultado.torque_massa_nm.toFixed(5) === resultado.torque_hidrostatico_nm.toFixed(5)
+  const tracaoSameDisplay = resultado
+    ? resultado.tracao_experimental_n.toFixed(4) === resultado.tracao_teorica_n.toFixed(4)
     : false;
 
-  const missingTorque = resultado
-    ? Math.max(resultado.torque_hidrostatico_nm - resultado.torque_massa_nm, 0)
+  const tracaoFaltante = resultado
+    ? Math.max(resultado.tracao_teorica_n - resultado.tracao_experimental_n, 0)
     : 0;
+
+  const sinTheta = Math.sin((input.angulo_graus * Math.PI) / 180);
+  const cosTheta = Math.cos((input.angulo_graus * Math.PI) / 180);
 
   return (
     <div className="p-4 sm:p-6">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-white">Simulador Hidrostático</h1>
         <p className="text-slate-400 text-sm mt-1">
-          Insira os parâmetros do experimento e execute a simulação
+          Comporta circular inclinada submersa — equilíbrio de momentos em O
         </p>
       </div>
 
@@ -146,7 +173,8 @@ export default function SimulatorPage() {
             <div className="space-y-3">
               <InputField label="Diâmetro (D)" unit="mm" field="diametro_mm" value={input.diametro_mm} onChange={handleChange} step={0.1} />
               <InputField label="Altura da água (H)" unit="cm" field="altura_h_cm" value={input.altura_h_cm} onChange={handleChange} step={0.5} />
-              <InputField label="Altura do centro (H')" unit="cm" field="altura_h_linha_cm" value={input.altura_h_linha_cm} onChange={handleChange} step={0.5} />
+              <InputField label="Prof. do topo (H')" unit="cm" field="altura_h_linha_cm" value={input.altura_h_linha_cm} onChange={handleChange} step={0.5} />
+              <InputField label="Ângulo (θ)" unit="°" field="angulo_graus" value={input.angulo_graus} onChange={handleChange} step={1} />
             </div>
           </div>
 
@@ -158,8 +186,54 @@ export default function SimulatorPage() {
               <InputField label="Massa da comporta" unit="g" field="massa_comporta_g" value={input.massa_comporta_g} onChange={handleChange} />
               <InputField label="Massa do gancho" unit="g" field="massa_gancho_g" value={input.massa_gancho_g} onChange={handleChange} />
               <InputField label="Massa do recipiente" unit="g" field="massa_recipiente_g" value={input.massa_recipiente_g} onChange={handleChange} />
-              <InputField label="Massa de areia" unit="g" field="massa_areia_g" value={input.massa_areia_g} onChange={handleChange} />
             </div>
+          </div>
+
+          <div className="bg-[#111827] border border-slate-800 rounded-xl p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">
+                Medições de Areia
+              </h2>
+              <button
+                onClick={addMedicao}
+                className="p-1 text-slate-400 hover:text-cyan-400 rounded"
+                title="Adicionar medição"
+              >
+                <Plus size={16} />
+              </button>
+            </div>
+            <div className="space-y-2">
+              {input.medicoes_areia_g.map((massa, idx) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <span className="text-xs text-slate-500 font-mono w-5">{idx + 1}</span>
+                  <div className="flex flex-1">
+                    <input
+                      type="number"
+                      step={0.01}
+                      min={0}
+                      value={massa}
+                      onChange={(e) => handleMedicaoChange(idx, parseFloat(e.target.value) || 0)}
+                      className="w-full bg-[#0d1224] border border-slate-700 text-slate-100 text-sm rounded-l-lg px-3 py-2 focus:outline-none focus:border-cyan-500/50 font-mono"
+                    />
+                    <span className="bg-slate-800 border border-l-0 border-slate-700 text-slate-400 text-xs px-2 rounded-r-lg flex items-center">
+                      g
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => removeMedicao(idx)}
+                    disabled={input.medicoes_areia_g.length <= 1}
+                    className="p-1 text-slate-500 hover:text-red-400 disabled:opacity-30 disabled:hover:text-slate-500 rounded"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-slate-500 mt-3">
+              Média: <span className="font-mono text-slate-300">
+                {(input.medicoes_areia_g.reduce((a, b) => a + b, 0) / input.medicoes_areia_g.length).toFixed(2)} g
+              </span>
+            </p>
           </div>
 
           {/* Parâmetros avançados */}
@@ -174,8 +248,7 @@ export default function SimulatorPage() {
             {showAdvanced && (
               <div className="px-5 pb-5 space-y-3 border-t border-slate-800 pt-4">
                 <InputField label="Densidade do fluido" unit="kg/m³" field="densidade_fluido" value={input.densidade_fluido} onChange={handleChange} step={10} />
-                <InputField label="Gravidade (g)" unit="m/s²" field="gravidade" value={input.gravidade} onChange={handleChange} step={0.001} />
-                <InputField label="Braço de alavanca" unit="cm" field="braco_alavanca_cm" value={input.braco_alavanca_cm} onChange={handleChange} step={0.5} />
+                <InputField label="Gravidade (g)" unit="m/s²" field="gravidade" value={input.gravidade} onChange={handleChange} step={0.01} />
               </div>
             )}
           </div>
@@ -241,23 +314,35 @@ export default function SimulatorPage() {
                       value={resultado.area_m2}
                       unit="m²"
                       color="cyan"
-                      description="πr²"
+                      description="A = πD²/4"
                       details={[
-                        `Raio: r = D/2 = ${(input.diametro_mm / 2).toFixed(2)} mm = ${resultado.raio_m.toFixed(5)} m.`,
-                        `Área: A = π · r² = π · (${resultado.raio_m.toFixed(5)})².`,
-                        `Resultado: A = ${resultado.area_m2.toFixed(6)} m².`,
+                        `Diâmetro: D = ${input.diametro_mm} mm = ${(input.diametro_mm / 1000).toFixed(5)} m.`,
+                        `Área: A = π · D² / 4 = π · (${(input.diametro_mm / 1000).toFixed(5)})² / 4.`,
+                        `Resultado: A = ${resultado.area_m2.toExponential(3)} m².`,
                       ]}
                     />
                     <MetricCard
-                      label="Pressão (centróide)"
-                      value={resultado.pressao_centroide_pa.toFixed(2)}
-                      unit="Pa"
+                      label="h̄ (vertical)"
+                      value={resultado.h_barra_m.toFixed(4)}
+                      unit="m"
                       color="blue"
-                      description="ρgh"
+                      description="H' + sen(θ)·R"
                       details={[
-                        `Profundidade do centróide: h = H - H' = ${input.altura_h_cm} - ${input.altura_h_linha_cm} = ${(resultado.profundidade_centroide_m * 100).toFixed(2)} cm.`,
-                        `Pressão: P = ρ · g · h = ${input.densidade_fluido} · ${input.gravidade} · ${resultado.profundidade_centroide_m.toFixed(4)}.`,
-                        `Resultado: P = ${resultado.pressao_centroide_pa.toFixed(2)} Pa.`,
+                        `Profundidade vertical da superfície até o centroide.`,
+                        `h̄ = H' + sen(${input.angulo_graus}°) · R = ${(input.altura_h_linha_cm / 100).toFixed(4)} + ${sinTheta.toFixed(4)} · ${resultado.raio_m.toFixed(5)}.`,
+                        `Resultado: h̄ = ${resultado.h_barra_m.toFixed(4)} m.`,
+                      ]}
+                    />
+                    <MetricCard
+                      label="ȳ (inclinada)"
+                      value={resultado.y_barra_m.toFixed(4)}
+                      unit="m"
+                      color="blue"
+                      description="H'/sen(θ) + R"
+                      details={[
+                        `Distância da superfície até o centroide ao longo do plano inclinado.`,
+                        `ȳ = H' / sen(${input.angulo_graus}°) + R = ${(input.altura_h_linha_cm / 100).toFixed(4)} / ${sinTheta.toFixed(4)} + ${resultado.raio_m.toFixed(5)}.`,
+                        `Resultado: ȳ = ${resultado.y_barra_m.toFixed(4)} m.`,
                       ]}
                     />
                     <MetricCard
@@ -265,47 +350,59 @@ export default function SimulatorPage() {
                       value={resultado.forca_hidrostatica_n.toFixed(4)}
                       unit="N"
                       color="cyan"
-                      description="F = P·A"
+                      description="F = γ·h̄·A"
                       details={[
-                        `Força: F = P · A.`,
-                        `Substituindo: F = ${resultado.pressao_centroide_pa.toFixed(2)} · ${resultado.area_m2.toFixed(6)}.`,
+                        `γ = ρ · g = ${input.densidade_fluido} · ${input.gravidade} = ${(input.densidade_fluido * input.gravidade).toFixed(0)} N/m³.`,
+                        `F = γ · h̄ · A = ${(input.densidade_fluido * input.gravidade).toFixed(0)} · ${resultado.h_barra_m.toFixed(4)} · ${resultado.area_m2.toExponential(3)}.`,
                         `Resultado: F = ${resultado.forca_hidrostatica_n.toFixed(4)} N.`,
                       ]}
                     />
                     <MetricCard
-                      label="Excentricidade"
-                      value={(resultado.excentricidade_m * 1000).toFixed(3)}
-                      unit="mm"
+                      label="Centro de Pressão"
+                      value={resultado.distancia_centro_pressao_m.toFixed(5)}
+                      unit="m"
                       color="amber"
-                      description="e = ycp − ȳ"
+                      description="Dcp = R + ICG/(A·ȳ)"
                       details={[
-                        `Centro de pressão: ycp = ${resultado.profundidade_centro_pressao_m.toFixed(5)} m.`,
-                        `Centróide: ȳ = ${resultado.profundidade_centroide_m.toFixed(5)} m.`,
-                        `Excentricidade: e = ycp - ȳ = ${(resultado.excentricidade_m * 1000).toFixed(3)} mm.`,
+                        `ICG = π·D⁴/64 = ${resultado.momento_inercia_m4.toExponential(3)} m⁴.`,
+                        `Excentricidade: ICG / (A·ȳ) = ${resultado.excentricidade_m.toExponential(3)} m.`,
+                        `Dcp = R + e = ${resultado.raio_m.toFixed(5)} + ${resultado.excentricidade_m.toFixed(6)} = ${resultado.distancia_centro_pressao_m.toFixed(5)} m.`,
                       ]}
                     />
                     <MetricCard
-                      label="Torque Hidrostático"
-                      value={resultado.torque_hidrostatico_nm.toFixed(5)}
-                      unit="N·m"
+                      label="Componente do Peso"
+                      value={resultado.componente_peso_n.toFixed(5)}
+                      unit="N"
+                      color="amber"
+                      description="Gx = m·g·cos(θ)"
+                      details={[
+                        `Componente do peso da comporta perpendicular ao plano inclinado.`,
+                        `Gx = m · g · cos(${input.angulo_graus}°) = ${(input.massa_comporta_g / 1000).toFixed(5)} · ${input.gravidade} · ${cosTheta.toFixed(4)}.`,
+                        `Resultado: Gx = ${resultado.componente_peso_n.toFixed(5)} N.`,
+                      ]}
+                    />
+                    <MetricCard
+                      label="Tração Teórica"
+                      value={resultado.tracao_teorica_n.toFixed(4)}
+                      unit="N"
                       color="blue"
-                      description="Teórico"
+                      description="T = (F·Dcp + Gx·R) / D"
                       details={[
-                        `Torque teórico da água: M = F · e.`,
-                        `Substituindo: M = ${resultado.forca_hidrostatica_n.toFixed(4)} · ${resultado.excentricidade_m.toFixed(6)}.`,
-                        `Resultado: M = ${resultado.torque_hidrostatico_nm.toFixed(5)} N·m.`,
+                        `Equilíbrio de momentos em O (topo da comporta).`,
+                        `T = (F · Dcp + Gx · R) / D = (${resultado.forca_hidrostatica_n.toFixed(4)} · ${resultado.distancia_centro_pressao_m.toFixed(5)} + ${resultado.componente_peso_n.toFixed(5)} · ${resultado.raio_m.toFixed(5)}) / ${(input.diametro_mm / 1000).toFixed(5)}.`,
+                        `Resultado: T = ${resultado.tracao_teorica_n.toFixed(4)} N.`,
                       ]}
                     />
                     <MetricCard
-                      label="Torque das Massas"
-                      value={resultado.torque_massa_nm.toFixed(5)}
-                      unit="N·m"
+                      label="Tração Experimental"
+                      value={resultado.tracao_experimental_n.toFixed(4)}
+                      unit="N"
                       color="green"
-                      description="Experimental"
+                      description="T_exp = mT·g"
                       details={[
-                        `Massa total: m = gancho + recipiente + areia = ${(resultado.massa_total_kg * 1000).toFixed(2)} g.`,
-                        `Braço: L = ${input.braco_alavanca_cm} cm = ${(input.braco_alavanca_cm / 100).toFixed(5)} m.`,
-                        `Torque: M = m · g · L = ${resultado.massa_total_kg.toFixed(5)} · ${input.gravidade} · ${(input.braco_alavanca_cm / 100).toFixed(5)}.`,
+                        `Massa total: mT = m_areia + m_recipiente + m_gancho.`,
+                        `mT = ${resultado.massa_areia_media_g.toFixed(2)} + ${input.massa_recipiente_g} + ${input.massa_gancho_g} = ${(resultado.massa_total_kg * 1000).toFixed(2)} g.`,
+                        `T_exp = ${resultado.massa_total_kg.toFixed(5)} · ${input.gravidade} = ${resultado.tracao_experimental_n.toFixed(4)} N.`,
                       ]}
                     />
                     <MetricCard
@@ -313,23 +410,34 @@ export default function SimulatorPage() {
                       value={(resultado.massa_teorica_kg * 1000).toFixed(2)}
                       unit="g"
                       color="cyan"
-                      description="Para equilíbrio"
+                      description="Para abertura"
                       details={[
-                        `Condição: torque das massas = torque hidrostático.`,
-                        `m = M_água / (g · L).`,
-                        `m = ${resultado.torque_hidrostatico_nm.toFixed(5)} / (${input.gravidade} · ${(input.braco_alavanca_cm / 100).toFixed(5)}) = ${(resultado.massa_teorica_kg * 1000).toFixed(2)} g.`,
+                        `Massa total necessária para igualar a tração teórica.`,
+                        `mT_min = T_teórica / g = ${resultado.tracao_teorica_n.toFixed(4)} / ${input.gravidade}.`,
+                        `Resultado: mT_min = ${(resultado.massa_teorica_kg * 1000).toFixed(2)} g.`,
                       ]}
                     />
                     <MetricCard
-                      label="Massa Experimental"
+                      label="Média da Areia"
+                      value={resultado.massa_areia_media_g.toFixed(2)}
+                      unit="g"
+                      color="amber"
+                      description={`${input.medicoes_areia_g.length} medições`}
+                      details={[
+                        `Soma: ${input.medicoes_areia_g.map((m) => m.toFixed(2)).join(" + ")} = ${input.medicoes_areia_g.reduce((a, b) => a + b, 0).toFixed(2)} g.`,
+                        `Média = soma / ${input.medicoes_areia_g.length} = ${resultado.massa_areia_media_g.toFixed(2)} g.`,
+                      ]}
+                    />
+                    <MetricCard
+                      label="Massa Total Experimental"
                       value={(resultado.massa_total_kg * 1000).toFixed(2)}
                       unit="g"
                       color="amber"
-                      description="Gancho + rec + areia"
+                      description="Areia + rec + gancho"
                       details={[
-                        `m_total = m_gancho + m_recipiente + m_areia.`,
-                        `m_total = ${input.massa_gancho_g} + ${input.massa_recipiente_g} + ${input.massa_areia_g} g.`,
-                        `Resultado: m_total = ${(resultado.massa_total_kg * 1000).toFixed(2)} g.`,
+                        `mT = m_areia + m_recipiente + m_gancho.`,
+                        `mT = ${resultado.massa_areia_media_g.toFixed(2)} + ${input.massa_recipiente_g} + ${input.massa_gancho_g} g.`,
+                        `Resultado: mT = ${(resultado.massa_total_kg * 1000).toFixed(2)} g = ${resultado.massa_total_kg.toFixed(5)} kg.`,
                       ]}
                     />
                     <MetricCard
@@ -337,10 +445,10 @@ export default function SimulatorPage() {
                       value={resultado.erro_percentual.toFixed(2)}
                       unit="%"
                       color={resultado.erro_percentual < 5 ? "green" : resultado.erro_percentual < 15 ? "amber" : "red"}
-                      description="Teórico vs Experimental"
+                      description="|T_teórica − T_exp| / T_exp"
                       details={[
-                        `Erro = |M_teórico - M_experimental| / M_experimental · 100.`,
-                        `Erro = |${resultado.torque_hidrostatico_nm.toFixed(5)} - ${resultado.torque_massa_nm.toFixed(5)}| / ${resultado.torque_massa_nm.toFixed(5)} · 100.`,
+                        `Erro = |T_teórica − T_exp| / T_exp · 100.`,
+                        `Erro = |${resultado.tracao_teorica_n.toFixed(4)} − ${resultado.tracao_experimental_n.toFixed(4)}| / ${resultado.tracao_experimental_n.toFixed(4)} · 100.`,
                         `Resultado: ${resultado.erro_percentual.toFixed(2)}%.`,
                       ]}
                     />
@@ -361,6 +469,7 @@ export default function SimulatorPage() {
               forcaN={resultado?.forca_hidrostatica_n}
               excentricidadeMm={resultado ? resultado.excentricidade_m * 1000 : 0}
               massaTotalKg={resultado?.massa_total_kg}
+              angulo={input.angulo_graus}
               canOpen={canOpenGate}
             />
           </div>
@@ -385,10 +494,10 @@ export default function SimulatorPage() {
                 </p>
                 <p className="text-xs text-slate-400 mt-1 leading-relaxed">
                   {canOpenGate
-                    ? torqueSameDisplay
-                      ? `O torque das massas (${resultado.torque_massa_nm.toFixed(8)} N·m) é marginalmente superior ao torque hidrostático (${resultado.torque_hidrostatico_nm.toFixed(8)} N·m) — diferença de ${(resultado.torque_massa_nm - resultado.torque_hidrostatico_nm).toExponential(2)} N·m.`
-                      : `O torque das massas (${resultado.torque_massa_nm.toFixed(5)} N·m) supera o torque hidrostático (${resultado.torque_hidrostatico_nm.toFixed(5)} N·m).`
-                    : `O torque das massas (${resultado.torque_massa_nm.toFixed(5)} N·m) é menor que o torque hidrostático necessário (${resultado.torque_hidrostatico_nm.toFixed(5)} N·m). Faltam aproximadamente ${missingTorque.toFixed(5)} N·m; aumente a massa de areia, o braço de alavanca ou reduza a altura da água para permitir a abertura.`}
+                    ? tracaoSameDisplay
+                      ? `Tração experimental (${resultado.tracao_experimental_n.toFixed(6)} N) é marginalmente superior à teórica (${resultado.tracao_teorica_n.toFixed(6)} N) — diferença de ${(resultado.tracao_experimental_n - resultado.tracao_teorica_n).toExponential(2)} N.`
+                      : `Tração experimental (${resultado.tracao_experimental_n.toFixed(4)} N) supera a tração teórica necessária (${resultado.tracao_teorica_n.toFixed(4)} N).`
+                    : `Tração experimental (${resultado.tracao_experimental_n.toFixed(4)} N) é menor que a tração teórica (${resultado.tracao_teorica_n.toFixed(4)} N). Faltam ${tracaoFaltante.toFixed(4)} N (~${(tracaoFaltante / input.gravidade * 1000).toFixed(1)} g de massa) para a abertura.`}
                 </p>
               </div>
             </div>
@@ -399,19 +508,19 @@ export default function SimulatorPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
               <div className="bg-[#111827] border border-slate-800 rounded-xl p-4 min-w-0">
                 <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
-                  Pressão × Altura
+                  Pressão × H'
                 </h3>
                 <p className="text-xs text-slate-500 mt-1 mb-3 leading-relaxed">
-                  Mostra como a pressão no centro da comporta cresce conforme o nível de água aumenta.
+                  Pressão no centroide variando a profundidade do topo da comporta.
                 </p>
                 <PressureChart data={graficos.pressao_vs_altura} />
               </div>
               <div className="bg-[#111827] border border-slate-800 rounded-xl p-4 min-w-0">
                 <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
-                  Força × Altura
+                  Força × H'
                 </h3>
                 <p className="text-xs text-slate-500 mt-1 mb-3 leading-relaxed">
-                  Indica a força hidrostática resultante aplicada na comporta para cada altura de água.
+                  Força hidrostática resultante na comporta para cada profundidade do topo.
                 </p>
                 <ForceChart data={graficos.forca_vs_altura} />
               </div>
@@ -420,7 +529,7 @@ export default function SimulatorPage() {
                   Teórico × Experimental
                 </h3>
                 <p className="text-xs text-slate-500 mt-1 mb-3 leading-relaxed">
-                  Compara o torque/massa calculados pela teoria com os valores obtidos pelo conjunto de massas.
+                  Compara a tração/massa calculadas pela teoria com os valores experimentais.
                 </p>
                 <ComparisonChart data={comparisonData} />
               </div>
