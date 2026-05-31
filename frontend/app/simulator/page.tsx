@@ -445,10 +445,10 @@ export default function SimulatorPage() {
                       value={resultado.erro_percentual.toFixed(2)}
                       unit="%"
                       color={resultado.erro_percentual < 5 ? "green" : resultado.erro_percentual < 15 ? "amber" : "red"}
-                      description="|T_teórica − T_exp| / T_exp"
+                      description="|T_teórica − T_exp| / T_teórica"
                       details={[
-                        `Erro = |T_teórica − T_exp| / T_exp · 100.`,
-                        `Erro = |${resultado.tracao_teorica_n.toFixed(4)} − ${resultado.tracao_experimental_n.toFixed(4)}| / ${resultado.tracao_experimental_n.toFixed(4)} · 100.`,
+                        `Erro = |T_teórica − T_exp| / T_teórica · 100.`,
+                        `Erro = |${resultado.tracao_teorica_n.toFixed(4)} − ${resultado.tracao_experimental_n.toFixed(4)}| / ${resultado.tracao_teorica_n.toFixed(4)} · 100.`,
                         `Resultado: ${resultado.erro_percentual.toFixed(2)}%.`,
                       ]}
                     />

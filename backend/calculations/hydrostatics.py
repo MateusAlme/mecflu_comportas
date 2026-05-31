@@ -91,9 +91,9 @@ def calcular_hidrostatics(
     # Massa teórica para equilíbrio: T_teorica = m * g
     massa_teorica_kg = tracao_teorica / gravidade if gravidade > 0 else 0.0
 
-    # Erro percentual
-    if tracao_experimental > 0:
-        erro = abs(tracao_teorica - tracao_experimental) / tracao_experimental * 100
+    # Erro percentual (T_teorica como referencia)
+    if tracao_teorica > 0:
+        erro = abs(tracao_teorica - tracao_experimental) / tracao_teorica * 100
     else:
         erro = 0.0
 
