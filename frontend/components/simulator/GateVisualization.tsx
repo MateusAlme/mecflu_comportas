@@ -35,8 +35,8 @@ export default function GateVisualization({
   const waterY = lowerShelfY - alturaH * scale;
 
   const hasResult = forcaN > 0;
-  const isEquil = hasResult && massaTotalKg > 0;
   const showOpen = hasResult && canOpen && motionOpen;
+  const hasMass = hasResult && massaTotalKg > 0;
 
   const closedA = { x: notchX + 34, y: 150 };
   const closedB = { x: 252, y: lowerShelfY };
@@ -80,9 +80,15 @@ export default function GateVisualization({
         <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
           Vista Lateral — Aparato da Prática
         </h3>
-        {isEquil && (
-          <span className="text-xs bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full">
-            Equilíbrio
+        {hasResult && (
+          <span
+            className={
+              canOpen
+                ? "text-xs bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full"
+                : "text-xs bg-amber-500/10 border border-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full"
+            }
+          >
+            {canOpen ? "Aberta" : "Estática"}
           </span>
         )}
       </div>
@@ -225,13 +231,13 @@ export default function GateVisualization({
           width="48"
           height="52"
           rx="3"
-          fill={isEquil ? "url(#practiceSand)" : "rgba(245,158,11,0.12)"}
+          fill={hasMass ? "url(#practiceSand)" : "rgba(245,158,11,0.12)"}
           stroke={wall}
           strokeWidth="4"
           style={{ transition: "all 850ms ease" }}
         />
         <text x={massX} y={massBottomY + 50} fontSize="10" fill="#f59e0b" textAnchor="middle" fontWeight="700" style={{ transition: "all 850ms ease" }}>
-          {isEquil ? `${(massaTotalKg * 1000).toFixed(1)} g` : "massas"}
+          {hasMass ? `${(massaTotalKg * 1000).toFixed(1)} g` : "massas"}
         </text>
 
         {/* Fluxo visível após simular */}

@@ -140,15 +140,23 @@ export default function SimulatorPage() {
       ]
     : [];
 
+  // Tolerância do erro experimental — bancadas reais abrem com erro sistemático
+  // de até ~35% por causa de atrito da dobradiça, vedação imperfeita, etc.
+  const TOLERANCIA_EXPERIMENTAL = 0.35;
   const canOpenGate = resultado
-    ? resultado.tracao_experimental_n >= resultado.tracao_teorica_n
+    ? resultado.tracao_experimental_n >=
+      resultado.tracao_teorica_n * (1 - TOLERANCIA_EXPERIMENTAL)
     : false;
-  const tracaoSameDisplay = resultado
-    ? resultado.tracao_experimental_n.toFixed(4) === resultado.tracao_teorica_n.toFixed(4)
+  const superaTeorica = resultado
+    ? resultado.tracao_experimental_n >= resultado.tracao_teorica_n
     : false;
 
   const tracaoFaltante = resultado
-    ? Math.max(resultado.tracao_teorica_n - resultado.tracao_experimental_n, 0)
+    ? Math.max(
+        resultado.tracao_teorica_n * (1 - TOLERANCIA_EXPERIMENTAL) -
+          resultado.tracao_experimental_n,
+        0,
+      )
     : 0;
 
   const sinTheta = Math.sin((input.angulo_graus * Math.PI) / 180);
@@ -494,10 +502,10 @@ export default function SimulatorPage() {
                 </p>
                 <p className="text-xs text-slate-400 mt-1 leading-relaxed">
                   {canOpenGate
-                    ? tracaoSameDisplay
-                      ? `Tração experimental (${resultado.tracao_experimental_n.toFixed(6)} N) é marginalmente superior à teórica (${resultado.tracao_teorica_n.toFixed(6)} N) — diferença de ${(resultado.tracao_experimental_n - resultado.tracao_teorica_n).toExponential(2)} N.`
-                      : `Tração experimental (${resultado.tracao_experimental_n.toFixed(4)} N) supera a tração teórica necessária (${resultado.tracao_teorica_n.toFixed(4)} N).`
-                    : `Tração experimental (${resultado.tracao_experimental_n.toFixed(4)} N) é menor que a tração teórica (${resultado.tracao_teorica_n.toFixed(4)} N). Faltam ${tracaoFaltante.toFixed(4)} N (~${(tracaoFaltante / input.gravidade * 1000).toFixed(1)} g de massa) para a abertura.`}
+                    ? superaTeorica
+                      ? `Tração experimental (${resultado.tracao_experimental_n.toFixed(4)} N) supera a tração teórica (${resultado.tracao_teorica_n.toFixed(4)} N).`
+                      : `Tração experimental (${resultado.tracao_experimental_n.toFixed(4)} N) está abaixo da teórica (${resultado.tracao_teorica_n.toFixed(4)} N), mas dentro da tolerância experimental de ${(TOLERANCIA_EXPERIMENTAL * 100).toFixed(0)}% — bancadas reais abrem com erro sistemático devido a atrito da dobradiça e vedação. Erro = ${resultado.erro_percentual.toFixed(2)}%.`
+                    : `Tração experimental (${resultado.tracao_experimental_n.toFixed(4)} N) é muito menor que a teórica (${resultado.tracao_teorica_n.toFixed(4)} N), além da tolerância experimental de ${(TOLERANCIA_EXPERIMENTAL * 100).toFixed(0)}%. Faltam ${tracaoFaltante.toFixed(4)} N (~${(tracaoFaltante / input.gravidade * 1000).toFixed(1)} g) para abrir.`}
                 </p>
               </div>
             </div>
